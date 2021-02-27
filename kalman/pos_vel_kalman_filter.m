@@ -1,4 +1,4 @@
-function [outputArg1] = kalman_filter(z, a, dt)
+function [outputArg1, outputArg2] = pos_vel_kalman_filter(z, dt, sigma_a, sigma)
 %KALMAN_FILTER  Performs a kalman filter on bat positional data.
 %   Detailed explanation goes here
 %   - z: measured state vector timeseries, state vector := [x_pos, x_vel, y_pos, y_vel]
@@ -6,23 +6,28 @@ function [outputArg1] = kalman_filter(z, a, dt)
 %   - dt: sampling interval
 
 F = [1 dt 0 0; 
-     0 1 0 0; 
+     0 0.995 0 0; 
      0 0 1 dt; 
-     0 0 0 1];
+     0 0 0 0.995];
 % G = [dt^2/2; dt; dt^2/2; dt];
 H = [1 0 0 0; 0 0 1 0]; % Measure only position
 
 % TODO: Calculate sigma_a for x_acc and y_acc separately
-sigma_a = mean(sqrt(var(a)));
+sigma_a = sigma_a;
 
 Q = [dt^4/4 dt^3/2 dt^4/4 dt^3/2;
      dt^3/2 dt^2 dt^3/2 dt^2;
      dt^4/4 dt^3/2 dt^4/4 dt^3/2;
      dt^3/2 dt^2 dt^3/2 dt^2;] * (sigma_a^2);
+ 
+Q = [dt^4/4 dt^3/2 0 0;
+    dt^3/2 dt^2 0 0;
+    0 0 dt^4/4 dt^3/2;
+    0 0 dt^3/2 dt^2;] * (sigma_a^2);
 
 % TODO: Estimate position measurement variance
-sigma_x = 0.2;
-sigma_y = 0.2;
+sigma_x = sigma;
+sigma_y = sigma;
 
 R = [sigma_x^2 0; 0 sigma_y^2];
 
@@ -32,6 +37,7 @@ P0 = [sigma_x^2 0 0 0;
       0 2*sigma_x 0 0;
       0 0 sigma_y^2 0;
       0 0 0 2*sigma_y];
+disp(P0);
 
 x_k_k = x0;
 P_k_k = P0;
@@ -65,5 +71,6 @@ for t=1:N
 end
 
 outputArg1 = x_estimate;
+outputArg2 = P_k1_k1;
 end
 
