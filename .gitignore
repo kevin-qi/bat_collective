@@ -1,1 +1,7 @@
-*_cdp_*
+data/
+B-SOID/
+bsoid_test/
+*.csv
+*.mat
+*.avi
+.ipynb_checkpoints/
