@@ -45,7 +45,7 @@ for i=1:length(session_data)
         ind = 1;
         for f_num = 1:length(flight_data{b_num})
             flight = flight_data{b_num}(f_num);
-            if(flight.to_edge & ~flight.concurrent & ~flight.self)
+            if((flight.to_bat | flight.to_edge) & (~flight.concurrent & ~flight.self))
                 isolating_flights{i, b_num}(ind) = flight;
                 ind = ind + 1;
                 

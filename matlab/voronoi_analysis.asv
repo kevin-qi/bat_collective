@@ -78,17 +78,9 @@ for i = 1:length(v_areas) % session
     bins = linspace(0,30,15);
     for j = 1:N % bat
         subplot(length(v_areas),N,j+N*(i-1));
-        disp(size(bat_areas(j,:)));
-        disp(size(stat_durations{i}));
+        unweighted_counts = histc(bat_areas(j,:), bins);
+        counts = n.*stat_durations{i}(j,:);
         
-        weighted_areas = []
-        for k = 1:length(bat_areas(j,:))
-            weighted_areas = [weighted_areas ones(1,stat_durations{i}(k))*bat_areas(j,k)];
-        end
-        disp(size(weighted_areas));
-        disp(sum(stat_durations{i}));
-        
-        H = histogram(weighted_areas, bins, 'Normalization','pdf');
         xline(31.36/5, 'LineWidth', 1, 'Color', 'r');
         ylim([0 0.3]);
         if i == 1

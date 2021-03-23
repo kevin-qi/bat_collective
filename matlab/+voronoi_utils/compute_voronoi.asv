@@ -1,14 +1,13 @@
-function [voronoi_areas, stationary_durations] = compute_voronoi(data, unique, run_tests, show_figures)
+function [voronoi_areas] = compute_voronoi(data, unique, run_tests, show_figures)
 %compute_voronoi Compute voronoi areas of bats at each unique time point
 %   Unique time points are defined as times with different bat positions
 %   after a flight. 
 %   ----------------
 %   data : processed rtls data from Analyze_Collective_Foraging_*.m scripts
-%   unique: bool flag to use unique time points only (1 time per stationary
-%           configuration regardless of stationary duration)
+%   unique: bool flag 
 %   run_tests : Bool flag to run tests (monte carlo area calculations etc.)
 %   show_figures : Bool flag to generate figures + movies (Takes a
-%                  significant amount of time)
+%   significant amount of time)
 
 import voronoi_utils.*;
 
@@ -36,7 +35,6 @@ bounds = [data.x1 data.y1;
 %% without duplicates (1 config per stationary segment)
 is_dupe = false;
 unique_times = [];
-stat_period_lengths = [];
 t0 = 1; % start of stat period
 t1 = 1; % end of stat period
 for t = t_start:T
@@ -49,9 +47,8 @@ for t = t_start:T
         
         if(is_dupe)
             t1 = t;
-            if(t1 - t0 > 100)
+            if(t1 - t0 > 1000)
                 unique_times(end + 1) = floor((t0 + t1)/2);
-                stat_period_lengths(end + 1) = t1 - t0;
                 is_dupe = false;
             end
         end
@@ -70,31 +67,23 @@ for t = t_start:T
     end
 end
 
-if unique
-    time_points = unique_times;
-else
-    time_points = stat_times;
-end
-disp(size(time_points));
-disp(size(stat_period_lengths));
-
 if(run_tests)
     figure(4)
     plot(data.stat_periods(:,1));
     hold on;
     time_points = zeros(length(data.bflying), 1);
-    time_points(time_points) = 1;
+    time_points(unique_times) = 1;
     plot(time_points);
     ylim([0 2]);
     hold off;
     shg;
 
 
-    disp(size(time_points));
+    disp(size(unique_times));
     % Monte Carlo Voronoi Area Estimation
-    bat_areas = zeros(length(time_points),5);
-    for i = 1:length(time_points)
-        t = time_points(i);
+    bat_areas = zeros(length(unique_times),5);
+    for i = 1:length(unique_times)
+        t = unique_times(i);
         counts = zeros(5,1);
         N_points = 1000000;
         X = rand(N_points, 1)*(data.x2 - data.x1) - data.x2;
@@ -130,8 +119,8 @@ if(run_tests)
 end
 
 %% Compute Voronoi Cell Areas
-for i=1:length(time_points)
-    t = time_points(i);
+for i=1:length(unique_times)
+    t = unique_times(i);
     P = cat(2, x_pos(:,t),y_pos(:,t));
     [A, b, V] = voronoiPolyhedronsCCW(P.', [-2.8 -2.8], [2.8 2.8]);
     for j=1:length(V)
@@ -146,8 +135,8 @@ end
 if(show_figures)
     figure(5);
     F = getframe;
-    for i=1:length(time_points(1:60))
-        t = time_points(i);
+    for i=1:length(unique_times(1:60))
+        t = unique_times(i);
         P = cat(2, x_pos(:,t),y_pos(:,t));
         [A, b, V] = voronoiPolyhedronsCCW(P.', [-2.8 -2.8], [2.8 2.8]);
         for j=1:length(V)
@@ -194,6 +183,5 @@ if(show_figures)
 end
 
 voronoi_areas = area;
-stationary_durations = stat_period_lengths;
 end
 
