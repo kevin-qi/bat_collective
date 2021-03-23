@@ -147,7 +147,8 @@ for i=1:length(session_data)
             hold on;
             x_index = linspace(1,length(C),length(C));
             scatter(x_index(argmin), C(argmin), 'MarkerFaceColor', 'blue');
-            
+            [min_dist, argmin] = closest_point_on_perimeter(r0, bounds, 40);
+            scatter(x_index(argmin), C(argmin), 'MarkerFaceColor', 'red');
             %% Geo voro
             Z = compute_metric_landscape(X, b_num, 'voro-geo-mean', bounds, 40);
             
@@ -169,7 +170,8 @@ for i=1:length(session_data)
             hold on;
             x_index = linspace(1,length(C),length(C));
             scatter(x_index(argmin), C(argmin), 'MarkerFaceColor', 'blue');
-            
+            [min_dist, argmin] = closest_point_on_perimeter(r0, bounds, 40);
+            scatter(x_index(argmin), C(argmin), 'MarkerFaceColor', 'red');
             %% NN
             
             Z = compute_metric_landscape(X, b_num, 'nearest-neighbor', bounds, 40);
@@ -186,13 +188,13 @@ for i=1:length(session_data)
             C = horzcat(top_row, right_col, bot_row, left_col);
             
             [min_dist, argmin] = closest_point_on_perimeter(r1, bounds, 40);
-            disp(argmin);
             subplot(2,4,8);
             plot(C);
             hold on;
             x_index = linspace(1,length(C),length(C));
             scatter(x_index(argmin), C(argmin), 'MarkerFaceColor', 'blue');
-            
+            [min_dist, argmin] = closest_point_on_perimeter(r0, bounds, 40);
+            scatter(x_index(argmin), C(argmin), 'MarkerFaceColor', 'red');
             savefig(sprintf('../public/week_5/flight_sim/%s_%d_%d.fig', sessions(i,:), b_num, f_num));
         end
     end
