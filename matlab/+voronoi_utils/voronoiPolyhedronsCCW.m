@@ -20,7 +20,7 @@ function [A,b,vert] = voronoiPolyhedrons( seeds,varargin )
 %          i-th polyhedron. For this output to be requested, finite box bounds, lb,
 %          ub must be given.
 
-  import voronoi_utils..*
+  import voronoi_utils.*
 
   seeds=seeds.';
   [N,d]=size(seeds);

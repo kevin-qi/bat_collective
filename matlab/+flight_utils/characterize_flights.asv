@@ -52,6 +52,7 @@ for b_num=1:N % For each bat
     for i=1:length(flight_start{b_num}) % For each flight by bat b_num
         % Flight start/end times
         flight(i).start = flight_start{b_num}(i);
+        disp(
         flight(i).end = flight_end{b_num}(i);     
         
         bflying_snippet = data.bflying(flight(i).start:flight(i).end,:);

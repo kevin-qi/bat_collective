@@ -1,6 +1,6 @@
 %% Script for the analysis of Voronoi Areas
 
-import voronoi_bat.*;
+import voronoi_utils.*;
 
 %Parameters
 x2=2.8; x1=-2.8; y2=2.8;  y1=-2.8;  z1=0; z2=2.30;             %Flight volume coordinates
@@ -22,7 +22,7 @@ for i = 1:n_tags
     end
 end
 
-if(false) % Set to true to populate data. Set to false to save time if data already populated
+if(true) % Set to true to populate data. Set to false to save time if data already populated
     sessions = ['210222'; '210223'; '210224'; '210225'; '210226'; '210301'; '210302'; '210303'; '210304'; '210305'];
     v_areas = {};
     for sess_index = 1:length(sessions)
@@ -36,7 +36,7 @@ if(false) % Set to true to populate data. Set to false to save time if data alre
         data.y1=y1;
         data.y2=y2;
 
-        v_areas{sess_index} = voronoi_bat.compute_voronoi(data, false, false);
+        v_areas{sess_index} = compute_voronoi(data, false, false);
     end
 end
 
@@ -136,7 +136,7 @@ end
 
 
 %% Voronoi Area Contour Plots
-N_points = 40
+N_points = 40;
 X = linspace(data.x1, data.x2, N_points);
 Y = linspace(data.y1, data.y2, N_points);
 [A,B] = meshgrid(X, Y);

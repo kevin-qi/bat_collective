@@ -23,20 +23,32 @@ if(verbose)
     sgtitle('Flights');
 end
 
+% Minimum length of 5 bat position recordings
+min_length = 999999999;
+for b_num = 1:N
+    if length(data.tag_data_filt{b_num}) < min_length
+        min_length = length(data.tag_data_filt{b_num});
+    end
+end
+if length(data.bflying) < min_length
+    min_length = length(data.bflying)-1;
+end
+%disp(min_length);
 % 1 at the start of flight, -1 at end of flight, 0 other wise
 flight_start_end = diff(data.bflying, 1, 1); 
+flight_start_end = flight_start_end(1:min_length, :);
 
 % Get flight start end indices
 for b_num=1:N
     flight_start{b_num} = find(flight_start_end(:,b_num) > 0)+1;
     flight_end{b_num} = find(flight_start_end(:,b_num) < 0);
-
+    
     % Assert num of flights is counted correctly...
-    assert(length(flight_start{b_num}) == data.num_flights(b_num), ...
-           'Num flights in flight_start do not match num flights in data.num_flights');
+    %assert(length(flight_start{b_num}) == data.num_flights(b_num), ...
+    %       'Num flights in flight_start do not match num flights in data.num_flights');
        
-    assert(length(flight_end{b_num}) == data.num_flights(b_num), ...
-           'Num flights in flight_end do not match num flights in data.num_flights');
+    %assert(length(flight_end{b_num}) == data.num_flights(b_num), ...
+    %       'Num flights in flight_end do not match num flights in data.num_flights');
     
     % Assert flight start end times are in chronological order (flight
     % cannot end before it starts!)
@@ -53,7 +65,7 @@ for b_num=1:N % For each bat
         % Flight start/end times
         flight(i).start = flight_start{b_num}(i);
         flight(i).end = flight_end{b_num}(i);     
-        
+
         bflying_snippet = data.bflying(flight(i).start:flight(i).end,:);
         
         % By construction, bat b_num should be flying between flight start
@@ -68,8 +80,8 @@ for b_num=1:N % For each bat
         % Flight start (from edge or from bowl/feeder
         % TODO: Improve forage detection
         if(forage_type == 'bowl')
-            r_bowl = data.bowl;
-            r_bat = data.tag_data_filt{b_num}(flight(i).start, 3:5);
+            r_bowl = data.bowl(1:2);
+            r_bat = data.tag_data_filt{b_num}(flight(i).start, 3:4);
 
             dist = norm(r_bat - r_bowl);
             if(dist < forage_threshold)
@@ -82,12 +94,20 @@ for b_num=1:N % For each bat
             end
         end
         
+        % To self flight (start end same spot)
+        dist = norm(data.tag_data_filt{b_num}(flight(i).end, 3:4) - data.tag_data_filt{b_num}(flight(i).start, 3:4));
+        if(dist < 0.5)
+            flight(i).self = true;
+        else
+            flight(i).self = false;
+        end
+        
         % Flight end (to bat / to bowl/feeder / to solo)
         % TODO: Improve forage detection
         if(forage_type == 'bowl')
-            r_bowl = data.bowl;
-            r_bat = data.tag_data_filt{b_num}(flight(i).end, 3:5);
-
+            r_bowl = data.bowl(1:2);
+            r_bat = data.tag_data_filt{b_num}(flight(i).end, 3:4);
+            
             dist = norm(r_bat - r_bowl);
             if(dist < forage_threshold) % To forage
                 flight(i).to_edge = false;
@@ -99,7 +119,7 @@ for b_num=1:N % For each bat
                 nn_dist = 99;
                 for j = 1:N
                     if(j ~= b_num)
-                        inter_bat_dist = norm(data.tag_data_filt{j}(flight(i).end, 3:5) - r_bat);
+                        inter_bat_dist = norm(data.tag_data_filt{j}(flight(i).end, 3:4) - r_bat);
                         if(inter_bat_dist < nn_dist)
                             nn_dist = inter_bat_dist;
                         end
