@@ -73,6 +73,7 @@ function [V,nr,nre]=lcon2vert(A,b,Aeq,beq,TOL,checkbounds)
 
 
   %%initial argument parsing
+  import voronoi_utils.*;
   
   nre=[];
   nr=[];
