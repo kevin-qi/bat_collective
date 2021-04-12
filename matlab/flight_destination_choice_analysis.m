@@ -21,7 +21,7 @@ N = 5;
 verbose = true;
 
 %% Load data
-if false
+if true
     sessions = ['210222'; '210223'; '210224'; '210225'; '210226'; '210301'; '210302'; '210303'; '210304'; '210305'];
     session_data = load_session_data(sessions);
     for i=1:length(session_data)
@@ -149,6 +149,7 @@ for i=1:length(session_data)
             scatter(x_index(argmin), C(argmin), 'MarkerFaceColor', 'blue');
             [min_dist, argmin] = closest_point_on_perimeter(r0, bounds, 40);
             scatter(x_index(argmin), C(argmin), 'MarkerFaceColor', 'red');
+            
             %% Geo voro
             Z = compute_metric_landscape(X, b_num, 'voro-geo-mean', bounds, 40);
             
@@ -192,6 +193,7 @@ for i=1:length(session_data)
             plot(C);
             hold on;
             x_index = linspace(1,length(C),length(C));
+            
             scatter(x_index(argmin), C(argmin), 'MarkerFaceColor', 'blue');
             [min_dist, argmin] = closest_point_on_perimeter(r0, bounds, 40);
             scatter(x_index(argmin), C(argmin), 'MarkerFaceColor', 'red');

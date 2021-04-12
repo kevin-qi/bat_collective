@@ -1,5 +1,5 @@
-function [voronoi_areas, stationary_durations] = compute_voronoi(data, unique, run_tests, show_figures)
-%compute_voronoi Compute voronoi areas of bats at each unique time point
+function [voronoi_areas, stationary_durations] = compute_voronoi_session(data, unique, run_tests, show_figures)
+%compute_voronoi_session Compute voronoi areas of bats at each unique time point
 %   Unique time points are defined as times with different bat positions
 %   after a flight. 
 %   ----------------

@@ -45,7 +45,7 @@ for sess_index = 1:length(sessions)
     data.y1=y1;
     data.y2=y2;
 
-    [v_areas{sess_index}, stat_durations{sess_index}] = compute_voronoi(data, true, false, false);
+    [v_areas{sess_index}, stat_durations{sess_index}] = compute_voronoi_session(data, true, false, false);
 end
 end
 
@@ -65,7 +65,6 @@ for i = 1:length(v_areas)
         if j == 1
             ylabel(sprintf('%s-%s', sessions(i,3:4),sessions(i,5:6)), 'fontweight', 'bold');
         end
-        
     end
     
     sgtitle('Voronoi Cell Area Distributions (unique)');
