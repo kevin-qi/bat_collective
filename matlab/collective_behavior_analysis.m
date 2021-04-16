@@ -163,7 +163,6 @@ for i = 1:length(sessions)
             for j_p = j_peaks
                 for k_p = k_peaks
                     peak_distances = [peak_distances norm(j_p - k_p)];
-                    disp(norm(j_p - k_p));
                     xline(norm(j_p - k_p), 'LineWidth', 1, 'Color', 'r');
                 end
             end
