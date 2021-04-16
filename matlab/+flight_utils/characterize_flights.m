@@ -122,6 +122,7 @@ for b_num=1:N % For each bat
                         inter_bat_dist = norm(data.tag_data_filt{j}(flight(i).end, 3:4) - r_bat);
                         if(inter_bat_dist < nn_dist)
                             nn_dist = inter_bat_dist;
+                            flight(i).nn_bat = j;
                         end
                     end
                 end 
