@@ -25,6 +25,10 @@ bounds.x2 = x2;
 bounds.y1 = y1;
 bounds.y2 = y2;
 
+% Spatial bins
+bins_x = linspace(x1,x2,20);
+bins_y = linspace(y1,y2,20);
+
 %Custom graded colormap
 for i = 1:n_tags
     for j = 1:3
@@ -43,15 +47,14 @@ if false
     end
 end
 
-if true
+if false
 %% Individual Bat Positions
 figure;
 axes = [];
 for i = 1:round(length(sessions)/2 -1)
     data = session_data{2*i};
     pos = extract_position(data);
-    bins_x = linspace(x1,x2,10);
-    bins_y = linspace(y1,y2,10);
+    
     
     index = 1;
     for j = 1:N
@@ -122,7 +125,7 @@ end
 linkaxes(axes, 'xy');
 ylim([0,0.5]);
 sgtitle('Pairwise Distance Distribution');
-end
+
 
 figure;
 axes = [];
@@ -166,8 +169,6 @@ for i = 1:length(sessions)
                     xline(norm(j_p - k_p), 'LineWidth', 1, 'Color', 'r');
                 end
             end
-            
-            
                     
             %xline(max_distance, 'LineWidth', 1, 'Color', 'r');
             if i == 1
@@ -258,6 +259,91 @@ end
 linkaxes(axes, 'xy');
 ylim([0,0.5]);
 sgtitle('Pairwise Distance Distribution With Baseline');
+end
+
+%% Pairwise Distance Difference Distribution (from shuffled)
+figure;
+axes = [];
+base_counts = zeros(length(sessions), N*(N-1)/2, length(bins)-1);
+true_counts = zeros(length(sessions), N*(N-1)/2, length(bins)-1);
+for i = 1:length(sessions)
+    data = session_data{i};
+    pos = extract_position(data);
+    for j = 1:N
+        rand_pos{j} = pos{j}(randperm(length(pos{j})),:);
+    end
+    pos{N+1} = rand_bat_bound_pos(length(pos{1}),bounds);
+    pairwise_dist = pairwise_distance(pos);
+    rand_pairwise_dist = pairwise_distance(rand_pos);
+    bins = linspace(0,max_distance,20);
+    
+    index = 1;
+    for j = 1:N
+        for k = j+1:N
+            ax = subplot(length(sessions)+1, N*(N-1)/2, index+(i-1)*N*(N-1)/2);
+            axes = [axes ax];
+            %H = histogram(rand_pairwise_dist{j}(:,k), bins, 'Normalization','probability', 'FaceColor', 'k');
+            base_counts(i,index,:) = histcounts(rand_pairwise_dist{j}(:,k), bins);
+            true_counts(i,index,:) = histcounts(pairwise_dist{j}(:,k), bins);
+            
+            base_counts(i,index,:) = base_counts(i,index,:) / sum(base_counts(i,index,:));
+            true_counts(i,index,:) = true_counts(i,index,:) / sum(true_counts(i,index,:));
+            
+            diff_counts(i,index,:) = true_counts(i,index,:) - base_counts(i,index,:);
+            
+            bar(reshape(diff_counts(i,index,:), [1 length(bins)-1]), 'FaceColor', 'k');
+            ylim([-0.5,0.5]);
+            
+            xticks([0, 20*2/max_distance, 20*4/max_distance, 20*6/max_distance, 20*8/max_distance]);
+            xticklabels([0,2,4,6,8]);
+            
+            counts_j = histcounts2(pos{j}(:,2), pos{j}(:,1), bins_y, bins_x);
+            counts_j = counts_j / sum(sum(counts_j));
+            
+            counts_k = histcounts2(pos{k}(:,2), pos{k}(:,1), bins_y, bins_x);
+            counts_k = counts_k / sum(sum(counts_k));
+            
+            bin_centers_x = bins_x + diff(bins_x(1:2))/2;
+            bin_centers_x = bin_centers_x(1:end-1);
+            bin_centers_y = bins_y + diff(bins_y(1:2))/2;
+            bin_centers_y = bin_centers_y(1:end-1);
+            grid_coords_x = meshgrid(bin_centers_x, bin_centers_y);
+            grid_coords_y = flip(meshgrid(bin_centers_x, bin_centers_y).',1);
+            j_peaks = [grid_coords_x(counts_j>0.1) grid_coords_y(counts_j>0.1)].';
+            k_peaks = [grid_coords_x(counts_k>0.1) grid_coords_y(counts_k>0.1)].';
+            
+            
+                    
+            %xline(max_distance, 'LineWidth', 1, 'Color', 'r');
+            if i == 1
+                title(bat_nms(j,:), bat_nms(k,:));
+            end
+            if index > 1
+                %set(gca, 'ytick',[0.1,0.2,0.3,0.4,0.5]);
+            end
+            if index == 1
+                %set(gca, 'ytick',[0.1,0.2,0.3,0.4,0.5]);
+                ylabel(sprintf('%s-%s', sessions(i,3:4),sessions(i,5:6)), 'fontweight', 'bold');
+            end
+            index = index+1;
+            
+            axis tight;
+        end
+    end
+    for j = 1:N*(N-1)/2
+        ax = subplot(length(sessions)+1, N*(N-1)/2, j+length(sessions)*N*(N-1)/2);
+        axes = [axes ax];
+        H = histogram(pairwise_dist{N+1}(:,1), bins, 'Normalization','probability'); 
+        if(j == 1)
+            ylabel('baseline', 'fontweight', 'bold');
+        end
+    end
+end
+linkaxes(axes, 'xy');
+sgtitle('Pairwise Distance Difference Distribution (from shuffled)');
+ylim([-0.5 0.5]);
+
+assert(false)
 
 %% Nearest Neighbor Distance Distribution
 figure;

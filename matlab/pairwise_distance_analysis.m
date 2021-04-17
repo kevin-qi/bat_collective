@@ -25,6 +25,10 @@ bounds.x2 = x2;
 bounds.y1 = y1;
 bounds.y2 = y2;
 
+% Spatial bins for position histograms
+bins_x = linspace(x1,x2,20);
+bins_y = linspace(y1,y2,20);
+
 %Custom graded colormap
 for i = 1:n_tags
     for j = 1:3
@@ -32,8 +36,8 @@ for i = 1:n_tags
     end
 end
 
-if false
-    sessions = ['210222'; '210223'; '210224'; '210225'; '210226'; '210301'; '210302'; '210303'; '210304'; '210305'; '210308'; '210309'; '210310'];
+if true
+    sessions = ['210222'; '210223'; '210224'; '210225'; '210226']%; '210301'; '210302'; '210303'; '210304'; '210305'; '210308'; '210309'; '210310';'210311';'210315';'210316';'210317';'210318';'210319'];
     session_data = load_session_data(sessions);
     for i=1:length(session_data)
         session_data{i}.x1 = x1;
