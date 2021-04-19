@@ -264,6 +264,7 @@ end
 %% Pairwise Distance Difference Distribution (from shuffled)
 figure;
 axes = [];
+bins = linspace(0,max_distance,20);
 base_counts = zeros(length(sessions), N*(N-1)/2, length(bins)-1);
 true_counts = zeros(length(sessions), N*(N-1)/2, length(bins)-1);
 for i = 1:length(sessions)
@@ -275,7 +276,7 @@ for i = 1:length(sessions)
     pos{N+1} = rand_bat_bound_pos(length(pos{1}),bounds);
     pairwise_dist = pairwise_distance(pos);
     rand_pairwise_dist = pairwise_distance(rand_pos);
-    bins = linspace(0,max_distance,20);
+    
     
     index = 1;
     for j = 1:N
@@ -292,7 +293,7 @@ for i = 1:length(sessions)
             diff_counts(i,index,:) = true_counts(i,index,:) - base_counts(i,index,:);
             
             bar(reshape(diff_counts(i,index,:), [1 length(bins)-1]), 'FaceColor', 'k');
-            ylim([-0.5,0.5]);
+            ylim([-0.3,0.3]);
             
             xticks([0, 20*2/max_distance, 20*4/max_distance, 20*6/max_distance, 20*8/max_distance]);
             xticklabels([0,2,4,6,8]);
@@ -342,6 +343,10 @@ end
 linkaxes(axes, 'xy');
 sgtitle('Pairwise Distance Difference Distribution (from shuffled)');
 ylim([-0.5 0.5]);
+
+save('true_counts.mat','true_counts');
+save('base_counts.mat','base_counts');
+save('diff_counts.mat','diff_counts');
 
 assert(false)
 

@@ -1,0 +1,227 @@
+%%Parameters
+x2=2.8; x1=-2.8; y2=2.8;  y1=-2.8;  z1=0; z2=2.30;             %Flight volume coordinates
+edges_d = {x1:(x2-x1)/10:x2 y1:(y2-y1)/10:y2};                 %Edges for density histogram
+bowl = [-0.29, 0.05, 0.45];                                      %x,y,z bowl 1
+Fs = 100;                                                      %resampling frequency (Hz) for common time
+n_tags = 5;
+bat_nms = ['Dai'; 'Den'; 'Dia'; 'Dor'; 'Dum'; 'Ran'];
+bat_pairs = nchoosek(1:n_tags,2);   bat_pair_nms = [bat_nms(bat_pairs(:,1),:), '-'.*ones(length(bat_pairs),1), bat_nms(bat_pairs(:,2),:)];
+bat_clr = lines(n_tags);
+v_th = 0.5;                                                    %Velocity threshold (m/s)
+TTL_time_diff = [21; 13; 8; 5; 4];
+N = 5;
+max_distance = norm([x2-x1 y2-y1]);
+N_bins = 20;
+bins = linspace(0,max_distance,N_bins);
+sessions = ['210222'; '210223'; '210224'; '210225'; '210226'; '210301'; '210302'; '210303'; '210304'; '210305'; '210308'; '210309'; '210310';'210311';'210315';'210316';'210317';'210318';'210319'];
+
+%% Load data
+% Contains pairwise distances and shuffled pairwise distances
+% load('for_angelo/pairwise_distances.mat');
+
+% Contains histogram bin counts (normalized) for true, shuffled, and
+% difference histograms
+load('for_angelo/pairwise_dist_counts.mat');
+
+% Contains the empirical cumulative distribution of true and shuffled
+load('for_angelo/empirical_CDF.mat');
+
+% Contains proximity measures (fraction of data with dist < 1) of true and
+% shuffled data as well as their difference (the proximity metric)
+load('for_angelo/proximity_measures.mat');
+
+%% Interbat distance
+figure;
+t = tiledlayout(length(sessions),N*(N-1)/2, ...
+            'TileSpacing','Compact', ...
+            'Padding','Compact');
+
+for i = 1:length(sessions) % i-th session
+    index = 1; % Index ranges from 1 to 10, denotes the bat pair.
+    for j = 1:N % j-th bat
+        for k = j+1:N % k-th bat (not equal to j-th bat)
+            nexttile
+            
+            % Plotting the true, observed distribution
+            bar(reshape(true_counts(i,index,:), [1 length(bins)-1]), 'BarWidth', 1);
+            ylim([0,0.6]);
+            
+            % label x-ticks every 2 meters
+            xticks([0, N_bins*2/max_distance, N_bins*4/max_distance, N_bins*6/max_distance, N_bins*8/max_distance]);
+            xticklabels([0,2,4,6,8]);
+            
+            index = index+1; 
+            if i == 1
+                title(sprintf('%s-%s', bat_nms(j,:), bat_nms(k,:)));
+            end
+        end
+    end
+end
+title(t, 'Observed Interbat Distance Distributions');
+xlabel(t, 'Distance (m)');
+ylabel(t, 'Session');
+savefig('for_angelo/observed_interbat_distance_distributions.fig');
+%saveas(gcf, 'for_angelo/observed_interbat_distance_distributions.png');
+
+%% Interbat shuffled distance
+figure;
+t = tiledlayout(length(sessions),N*(N-1)/2, ...
+            'TileSpacing','Compact', ...
+            'Padding','Compact');
+
+for i = 1:length(sessions)
+    index = 1; % Index ranges from 1 to 10, denotes the bat pair.
+    for j = 1:N % j-th bat
+        for k = j+1:N % k-th bat (not equal to j-th bat)
+            nexttile
+            
+            % Plotting the shuffled baseline distribution
+            bar(reshape(base_counts(i,index,:), [1 length(bins)-1]), 'BarWidth', 1);
+            ylim([0,0.6]);
+            
+            % label x-ticks every 2 meters
+            xticks([0, N_bins*2/max_distance, N_bins*4/max_distance, N_bins*6/max_distance, N_bins*8/max_distance]);
+            xticklabels([0,2,4,6,8]);
+            
+            index = index+1;
+            if i == 1
+                title(sprintf('%s-%s', bat_nms(j,:), bat_nms(k,:)));
+            end
+        end
+    end
+end
+title(t, 'Baseline Interbat Distance Distributions');
+xlabel(t, 'Distance (m)');
+ylabel(t, 'Session');
+savefig('for_angelo/shuffled_interbat_distance_distributions.fig');
+%saveas(gcf, 'for_angelo/shuffled_interbat_distance_distributions.png');
+
+%% Interbat distance difference distribution
+figure;
+t = tiledlayout(length(sessions),N*(N-1)/2, ...
+            'TileSpacing','Compact', ...
+            'Padding','Compact');
+
+for i = 1:length(sessions)
+    index = 1;
+    for j = 1:N
+        for k = j+1:N
+            nexttile
+            
+            % Plotting the difference (true - baseline) distribution
+            bar(reshape(diff_counts(i,index,:), [1 length(bins)-1]), 'BarWidth', 1);
+            ylim([-0.25,0.25]);
+            
+            xticks([0, N_bins*2/max_distance, N_bins*4/max_distance, N_bins*6/max_distance, N_bins*8/max_distance]);
+            xticklabels([0,2,4,6,8]);
+            
+            index = index+1;
+            if i == 1
+                title(sprintf('%s-%s', bat_nms(j,:), bat_nms(k,:)));
+            end
+        end
+    end
+end
+title(t, 'Interbat Distance Difference Distributions');
+xlabel(t, 'Distance (m)');
+ylabel(t, 'Session');
+savefig('for_angelo/difference_distributions.fig');
+%saveas(gcf, 'for_angelo/difference_distributions.png');
+
+if false % skip
+%% K-S test true and shuffled pairwise distances
+% K-S test between pairwise_dist and shuffled_pairwise_dist
+for i = 1:length(sessions)
+    index = 1;
+    for j = 1:N
+        for k = j+1:N
+            [h(i,index),p(i,index)] = kstest2(pairwise_dist{i}{j}(:,k), shuffled_pairwise_dist{i}{j}(:,k), 'Alpha', 0.001);
+            index = index + 1;
+        end
+    end
+end
+end
+
+%% Observed & shuffled interbat distance ECDF
+H(1) = figure;
+t = tiledlayout(length(sessions),N*(N-1)/2, ...
+            'TileSpacing','Compact', ...
+            'Padding','Compact');
+
+for i = 1:length(sessions)
+    index = 1;
+    for j = 1:N
+        for k = j+1:N
+            nexttile
+            
+            % Plot of the observed ECDF
+            stairs(true_ecdf{i,index}.x, true_ecdf{i,index}.f);
+            hold on
+            % Plot of the baseline ECDF
+            stairs(base_ecdf{i,index}.x, base_ecdf{i,index}.f);
+            hold off;
+            
+            % K-S test between observed and shuffled
+            %[h,p] = kstest2(pairwise_dist{i}{j}(:,k), shuffled_pairwise_dist{i}{j}(:,k));
+            %title(sprintf('%d',h));
+            %ylim([0,1]);
+            
+            %xticks([0, N_bins*2/max_distance, N_bins*4/max_distance, N_bins*6/max_distance, N_bins*8/max_distance]);
+            %xticklabels([0,2,4,6,8]);
+            % Critical value separating 'proximal' and 'distal' fractions
+            % of the distribution
+            xline(1, 'LineWidth', 1, 'Color', 'r');
+            
+            index = index+1;
+            if i == 1
+                title(sprintf('%s-%s', bat_nms(j,:), bat_nms(k,:)));
+            end
+        end
+    end
+end
+title(t, 'Interbat Distance Cumulative Distributions');
+xlabel(t, 'Distance (m)');
+ylabel(t, 'Session');
+lgd = legend('Observed', 'Baseline');
+lgd.Layout.Tile = 'East';
+%saveas(gcf, 'for_angelo/empirical_CDF.png');
+savefig(H, 'for_angelo/emprical_CDF.fig', 'compact')
+
+%% Proximity metric
+H(1) = figure;
+t = tiledlayout(N*(N-1)/2,1, ...
+            'TileSpacing','Compact', ...
+            'Padding','Compact');
+
+index = 1;
+for j = 1:N
+    for k = j+1:N
+        nexttile
+
+        % Plot of the observed ECDF
+        plot(proximity_metric(:,index));
+        ylim([-0.2 0.2]);
+        xlim([1 19]);
+        % K-S test between observed and shuffled
+        %[h,p] = kstest2(pairwise_dist{i}{j}(:,k), shuffled_pairwise_dist{i}{j}(:,k));
+        %title(sprintf('%d',h));
+        %ylim([0,1]);
+        yline(0);
+        %xticks([0, N_bins*2/max_distance, N_bins*4/max_distance, N_bins*6/max_distance, N_bins*8/max_distance]);
+        %xticklabels([0,2,4,6,8]);
+        % Critical value separating 'proximal' and 'distal' fractions
+        % of the distribution
+        %xline(1, 'LineWidth', 1, 'Color', 'r');
+
+        index = index+1;
+        if i == 1
+            title(sprintf('%s-%s', bat_nms(j,:), bat_nms(k,:)));
+        end
+    end
+end
+sgtitle(t, 'Proximity metric (Observed proximity - shuffled proximity)');
+xlabel(t, 'Distance (m)');
+ylabel(t, 'Session');
+%saveas(gcf, 'for_angelo/proximity_metric.png');
+savefig('for_angelo/proximity_metric.fig');
+
