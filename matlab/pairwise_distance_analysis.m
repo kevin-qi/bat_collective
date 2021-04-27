@@ -39,7 +39,7 @@ end
 %% Flags
 
 % Load Data
-load_data_flag = false;
+load_data_flag = true;
 
 % Calculate pairwise statistics
 calc_pairwise_stats_flag = true;
@@ -60,31 +60,50 @@ end
 %% Calculate pairwise statistics
 if calc_pairwise_stats_flag
 
+N_bootstrap_samples = 100;
+N_shuffles = 100;
 N_bins = 20;
 bins = linspace(0,max_distance,N_bins);
-base_counts = zeros(length(sessions), N*(N-1)/2, length(bins)-1);
+base_counts = zeros(length(sessions), N*(N-1)/2, length(bins)-1, N_shuffles);
 true_counts = zeros(length(sessions), N*(N-1)/2, length(bins)-1);
+boot_counts = zeros(length(sessions), N*(N-1)/2, length(bins)-1, N_bootstrap_samples);
 for i = 1:length(sessions)
     data = session_data{i};
     pos = extract_position(data);
+    
+    pos{N+1} = rand_bat_bound_pos(length(pos{1}),bounds);
+    pairwise_dist{i} = pairwise_distance(pos);
+    
     for j = 1:N
         rand_pos{j} = pos{j}(randperm(length(pos{j})),:);
     end
-    pos{N+1} = rand_bat_bound_pos(length(pos{1}),bounds);
-    pairwise_dist{i} = pairwise_distance(pos);
     shuffled_pairwise_dist{i} = pairwise_distance(rand_pos);
-
+    
+    for x = 1:N_shuffles % Generate N shuffled baselines
+        for j = 1:N
+            rand_pos{j} = pos{j}(randperm(length(pos{j})),:);
+        end
+        multi_shuffled_pairwise_dist{x} = pairwise_distance(rand_pos);
+    end
+    
     index = 1;
     for j = 1:N
         for k = j+1:N
-
-            base_counts(i,index,:) = histcounts(shuffled_pairwise_dist{i}{j}(:,k), bins);
-            true_counts(i,index,:) = histcounts(pairwise_dist{i}{j}(:,k), bins);
-
-            base_counts(i,index,:) = base_counts(i,index,:) / sum(base_counts(i,index,:));
+            bootstrapped = block_bootstrap(pairwise_dist{i}{j}(:,k), 200, N_bootstrap_samples);
+            for x = 1:N_bootstrap_samples % For each bootstrap sample
+                boot_counts(i,index,:,x) = histcounts(bootstrapped(x,:), bins);
+                boot_counts(i,index,:,x) = boot_counts(i,index,:,x) / sum(boot_counts(i,index,:,x));
+            end
+            
+            for x = 1:N_shuffles
+                base_counts(i,index,:,x) = histcounts(multi_shuffled_pairwise_dist{x}{j}(:,k), bins);
+                base_counts(i,index,:,x) = base_counts(i,index,:,x) / sum(base_counts(i,index,:,x));
+            end
+            
+            true_counts(i,index,:) = histcounts(pairwise_dist{i}{j}(:,k), bins);        
             true_counts(i,index,:) = true_counts(i,index,:) / sum(true_counts(i,index,:));
 
-            diff_counts(i,index,:) = true_counts(i,index,:) - base_counts(i,index,:);
+            diff_counts(i,index,:) = true_counts(i,index,:) - mean(base_counts(i,index,:,:), 4);
 
             [base_ecdf{i, index}.f base_ecdf{i, index}.x] = ecdf(shuffled_pairwise_dist{i}{j}(:,k));
             [true_ecdf{i, index}.f true_ecdf{i, index}.x] = ecdf(pairwise_dist{i}{j}(:,k));
@@ -117,8 +136,8 @@ for i = 1:length(sessions)
     end
 end
 
-save for_angelo/pairwise_distances.mat pairwise_dist shuffled_pairwise_dist
-save for_angelo/pairwise_dist_counts.mat base_counts true_counts diff_counts
-save for_angelo/empirical_CDF.mat base_ecdf true_ecdf
-save for_angelo/proximity_measures.mat true_proximity base_proximity proximity_metric
+save ../data/processed/pairwise_distances.mat pairwise_dist shuffled_pairwise_dist;
+save ../data/processed/pairwise_dist_counts.mat base_counts true_counts diff_counts boot_counts;
+save ../data/processed/empirical_CDF.mat base_ecdf true_ecdf;
+save ../data/processed/proximity_measures.mat true_proximity base_proximity proximity_metric;
 end

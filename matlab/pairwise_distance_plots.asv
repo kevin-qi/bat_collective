@@ -264,7 +264,7 @@ for i = 1:length(sessions)
     p_NG = plot(G, 'EdgeColor', edge_colors, 'NodeLabel', num2cell(bat_nms(1:N,:), 2));
     p_NG.LineWidth = G.Edges.LWidths;  p_NG.MarkerSize = 7;  %p_NG.NodeLabelColor = bat_clr;
     p_NG.NodeFontSize = 15;    p_NG.NodeFontWeight = 'bold';
-    title(sessions(i,:));
+    title(
     
 end
 sgtitle(t, 'Proximity metric Network Graphs');
