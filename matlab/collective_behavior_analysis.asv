@@ -60,11 +60,8 @@ for j = 1:1
         disp(idx);
     end
 end
-t = tiledlayout(N,1, ...
-            'TileSpacing','Compact', ...
-            'Padding','Compact');
-for j = 1:N
-    nexttile
+
+for j = 1:1
     for i = 1:length(sessions)
         data = session_data{i};
         pos = extract_position(data);
@@ -74,17 +71,22 @@ for j = 1:N
     end
     area(positions);
 end
+    
+for j = 1:1
+    for i = 1:length(sessions)
+        data = session_data{i};
+        pos = extract_position(data);
+        counts = histcounts2(pos{j}(:,2), pos{j}(:,1), linspace(x1,x2,5), linspace(x1,x2,5));
+        counts = reshape(counts / sum(sum(counts)),1,[]);
+        positions(i,:) = counts(idx);
+    end
+    area(positions);
+end    
 
 %% Occupancy Stability
 figure;
 occupancy = zeros(length(sessions)*4,16);
-t = tiledlayout(N,1, ...
-            'TileSpacing','Compact', ...
-            'Padding','Compact');
-spacing = reshape(repmat(linspace(1,length(sessions),length(sessions)), [4, 1]), 1, 32)-1;
-bar_pos = linspace(1, 4*length(sessions), 4*length(sessions)) + spacing;
-for j = 1:N
-    nexttile
+for j = 1:1
     index = 1;
     for i = 1:length(sessions)
         data = session_data{i};
@@ -97,8 +99,8 @@ for j = 1:N
             index = index + 1;
         end
     end
-    bar(bar_pos,occupancy, 1,'stacked','BarWidth', 10);
 end
+bar(occupancy, 1,'stacked','BarWidth', 10);
 
 if true
 %% Individual Bat Positions
