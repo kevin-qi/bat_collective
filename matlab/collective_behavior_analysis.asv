@@ -47,6 +47,7 @@ if false
     end
 end
 
+if false
 %% Location Stability
 figure;
 axes = [];
@@ -60,8 +61,11 @@ for j = 1:1
         disp(idx);
     end
 end
-
-for j = 1:1
+t = tiledlayout(N,1, ...
+            'TileSpacing','Compact', ...
+            'Padding','Compact');
+for j = 1:N
+    nexttile
     for i = 1:length(sessions)
         data = session_data{i};
         pos = extract_position(data);
@@ -71,22 +75,17 @@ for j = 1:1
     end
     area(positions);
 end
-    
-for j = 1:1
-    for i = 1:length(sessions)
-        data = session_data{i};
-        pos = extract_position(data);
-        counts = histcounts2(pos{j}(:,2), pos{j}(:,1), linspace(x1,x2,5), linspace(x1,x2,5));
-        counts = reshape(counts / sum(sum(counts)),1,[]);
-        positions(i,:) = counts(idx);
-    end
-    area(positions);
-end    
 
 %% Occupancy Stability
 figure;
 occupancy = zeros(length(sessions)*4,16);
-for j = 1:1
+t = tiledlayout(N,1, ...
+            'TileSpacing','Compact', ...
+            'Padding','Compact');
+spacing = reshape(repmat(linspace(1,length(sessions),length(sessions)), [4, 1]), 1, 32)-1;
+bar_pos = linspace(1, 4*length(sessions), 4*length(sessions)) + spacing;
+for j = 1:N
+    nexttile
     index = 1;
     for i = 1:length(sessions)
         data = session_data{i};
@@ -99,44 +98,145 @@ for j = 1:1
             index = index + 1;
         end
     end
+    bar(bar_pos,occupancy, 1,'stacked','BarWidth', 10);
 end
-bar(occupancy, 1,'stacked','BarWidth', 10);
+end 
 
 if true
-%% Individual Bat Positions
+%% Individual Bat Position Distribution
 figure;
-axes = [];
-for i = 1:round(length(sessions)/2 -1)
-    data = session_data{2*i};
+t = tiledlayout(length(sessions)+1,N, ...
+            'TileSpacing','Compact', ...
+            'Padding','Compact');
+total_counts = zeros(N, 4,4);
+num_bins = 10;
+bins = linspace(x1,x2,num_bins);
+for i = 1:length(sessions)
+    data = session_data{i};
     pos = extract_position(data);
     
     
     index = 1;
     for j = 1:N
-        ax = subplot(round(length(sessions)/2 -1), N, (i-1)*N + j);
-        axes = [axes ax];
-        counts = histcounts2(pos{j}(:,2), pos{j}(:,1), bins_y, bins_x);
+        nexttile
+        counts = histcounts2(pos{j}(:,2), pos{j}(:,1), bins, bins);
+        total_counts(j, :,:) = squeeze(total_counts(j, :,:)) + counts; 
         counts = counts / sum(sum(counts));
         
-        imagesc(bins_y, bins_x, counts);
+        imagesc(bins, bins, counts);
         axis equal;
         xlim([x1 x2]);
         ylim([y1 y2]);
         caxis([0 1]);
-        colormap hot;
-        colorbar();
-        
+        colormap parula;
+        if(j == N)
+            colorbar();
+        end
+        xticks([]);
+        yticks([]);
+        if(j == 1)
+            %yticks([y1 0 y2]);
+        end
+       
         if i == 1
             title(bat_nms(j,:));
         end
         if index == 1
-            ylabel(sprintf('%s-%s', sessions(2*i,3:4),sessions(2*i,5:6)), 'fontweight', 'bold');
+            ylabel(sprintf('%s-%s', sessions(i,3:4),sessions(i,5:6)), 'fontweight', 'bold');
         end
         index = index+1;
     end
 end
-linkaxes(axes, 'xy');
+for j = 1:N
+    nexttile
+    imagesc(bins, bins, squeeze(total_counts(j,:,:)/sum(sum(total_counts(j,:,:)))));
+    axis equal;
+    xlim([x1 x2]);
+    ylim([y1 y2]);
+    yticks([]);
+    if(j == 1)
+        %yticks([y1 0 y2]);
+    end
+    %xticks([x1 0 x2]);
+    caxis([0 1]);
+    colormap parula;
+    if j == N
+        colorbar();
+    end
+    if j == 1
+        ylabel('Total');
+    end
+end
 sgtitle('Individual Bat Position Distribution');
+
+
+%% Position Distribution Correlation
+figure;
+for j = 1:N
+    pos_corr{j} = zeros(length(sessions));
+    for i = 1:length(sessions)
+        data = session_data{i};
+        pos = extract_position(data);
+        for k = 1:length(sessions)
+            data = session_data{k};
+            pos2 = extract_position(data);
+            index = 1;
+        
+           
+            counts1 = histcounts2(pos{j}(:,2), pos{j}(:,1), bins, bins);
+            counts1 = counts1 / sum(sum(counts1));
+            
+            counts2 = histcounts2(pos2{j}(:,2), pos2{j}(:,1), bins, bins);
+            counts2 = counts2 / sum(sum(counts2));
+            
+            pos_corr{j}(i,k) = corr2(counts1, counts2);
+        end
+    end
+end
+
+t = tiledlayout(2,N, ...
+            'TileSpacing','Compact', ...
+            'Padding','Compact');
+for j = 1:N
+    nexttile
+    imagesc(linspace(1,length(sessions),length(sessions)),...
+            linspace(1,length(sessions),length(sessions)),...
+            pos_corr{j});
+    axis equal;
+    caxis([0 1]);
+    xlim([0.5 length(sessions)+0.5]);
+    ylim([0.5 length(sessions)+0.5]);
+    colormap parula;
+    if j == N
+        colorbar();
+    end
+    title(bat_nms(j,:));
+    ylabel('session');
+    xlabel('session');
+end
+for j = 1:N
+    nexttile
+    
+    corr_vals = zeros(length(sessions)-1, length(sessions));
+    for i = 1:length(sessions)
+        ind = true(1, length(sessions));
+        ind(i) = false;
+        corr_vals(:, i) = pos_corr{j}(ind,i);
+    end
+    plot(mean(corr_vals,1));
+    hold on
+    for i = 1:length(sessions)
+        scatter(i*ones(1,length(sessions)-1), corr_vals(:,i),12);
+    end
+    xlabel('session');
+    ylabel('correlation');
+    axis square;
+    ylim([0 1]);
+    yticks([0 0.2 0.4 0.6 0.8 1.0]);
+    xlim([0.5 length(sessions)+0.5]);
+end
+sgtitle('Bat Position Distribution Correlation');
+assert(false);
 
 
 %% Pairwise Distance Distribution
