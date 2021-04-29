@@ -36,8 +36,8 @@ for i = 1:n_tags
     end
 end
 
-if false
-    sessions = ['210222'; '210223'; '210224'; '210225'; '210226'; '210301'; '210302'; '210303';]% '210304'; '210305'; '210308'; '210309'];%; '210310';'210311';'210315';'210316';'210317';'210318';'210319'];
+if true
+    sessions = ['210222'; '210223'; '210224'; '210225'; '210226'; '210301'; '210302'; '210303'; '210304'; '210305'; '210308'; '210309'; '210310';'210311';'210315';'210316';'210317';'210318';'210319'];
     session_data = load_session_data(sessions);
     for i=1:length(session_data)
         session_data{i}.x1 = x1;
@@ -51,20 +51,21 @@ if false
 %% Location Stability
 figure;
 axes = [];
-positions = zeros(length(sessions), 16);
-for j = 1:1
-    for i = 1:1
-        counts = histcounts2(pos{j}(:,2), pos{j}(:,1), linspace(x1,x2,5), linspace(x1,x2,5));
-        counts = reshape(counts / sum(sum(counts)),1,[]);
-        [out, idx] = sort(counts, 'descend');
-        disp(out);
-        disp(idx);
-    end
-end
+color_map = lines(16);
+color_map = color_map(randperm(length(color_map)),:);
+positions = zeros(length(sessions), 5);
 t = tiledlayout(N,1, ...
             'TileSpacing','Compact', ...
             'Padding','Compact');
+day1_pos = extract_position(session_data{1}); 
+day2_pos = extract_position(session_data{2}); 
+day3_pos = extract_position(session_data{3});
 for j = 1:N
+    counts = histcounts2([day1_pos{j}(:,2) day2_pos{j}(:,2) day3_pos{j}(:,2)],...
+                         [day1_pos{j}(:,1) day2_pos{j}(:,1) day3_pos{j}(:,1)], linspace(x1,x2,5), linspace(x1,x2,5));
+    counts = reshape(counts / sum(sum(counts)),1,[]);
+    [out, idx] = sort(counts, 'descend');
+    idx = idx(1:5);
     nexttile
     for i = 1:length(sessions)
         data = session_data{i};
@@ -73,18 +74,37 @@ for j = 1:N
         counts = reshape(counts / sum(sum(counts)),1,[]);
         positions(i,:) = counts(idx);
     end
-    area(positions);
+    H = area(positions);
+    ylabel(bat_nms(j,:));
+    if(j == 1)
+        [out, idx_inv] = sort(idx);
+        %color_map = color_map(idx_inv,:);
+        colororder(color_map(idx,:));
+    else
+        colororder(color_map(idx,:));
+    end
+    
 end
+xlabel(t, 'Sessions');
+sgtitle('Bat Location Occupancy');
+savefig('../data/processed/pairwise_analysis/results/bat_location_occupancy.fig');
+
 
 %% Occupancy Stability
 figure;
-occupancy = zeros(length(sessions)*4,16);
+occupancy = zeros(length(sessions)*4,5);
 t = tiledlayout(N,1, ...
             'TileSpacing','Compact', ...
             'Padding','Compact');
-spacing = reshape(repmat(linspace(1,length(sessions),length(sessions)), [4, 1]), 1, 32)-1;
+spacing = reshape(repmat(linspace(1,length(sessions),length(sessions)), [4, 1]), 1, 4*length(sessions))-1;
 bar_pos = linspace(1, 4*length(sessions), 4*length(sessions)) + spacing;
 for j = 1:N
+    counts = histcounts2([day1_pos{j}(:,2) day2_pos{j}(:,2) day3_pos{j}(:,2)],...
+                         [day1_pos{j}(:,1) day2_pos{j}(:,1) day3_pos{j}(:,1)], linspace(x1,x2,5), linspace(x1,x2,5));
+    counts = reshape(counts / sum(sum(counts)),1,[]);
+    [out, idx] = sort(counts, 'descend');
+    idx = idx(1:5);
+    disp(idx);
     nexttile
     index = 1;
     for i = 1:length(sessions)
@@ -98,14 +118,27 @@ for j = 1:N
             index = index + 1;
         end
     end
-    bar(bar_pos,occupancy, 1,'stacked','BarWidth', 10);
+    H = bar(bar_pos,occupancy, 1,'stacked','BarWidth', 10);
+    ylabel(bat_nms(j,:));
+    if(j == 1)
+        [out, idx_inv] = sort(idx);
+        %color_map = color_map(idx_inv,:);
+        colororder(color_map(idx,:));
+    else
+        colororder(color_map(idx,:));
+    end
 end
+xlabel(t, 'Sessions');
+sgtitle('Zoomed-in Bat Location Occupancy');
+savefig('../data/processed/pairwise_analysis/results/zoomed_bat_location_occupancy.fig');
 end 
 
 if true
+subset_ind = [1 4 7 10 13 16 19];
+session_subset = sessions(subset_ind, :);
 %% Individual Bat Position Distribution
 figure;
-t = tiledlayout(length(sessions)+1,N, ...
+t = tiledlayout(length(subset_ind)+1,N, ...
             'TileSpacing','Compact', ...
             'Padding','Compact');
 num_bins = 10;
@@ -114,7 +147,6 @@ bins = linspace(x1,x2,num_bins);
 offset = mean(diff(bins))/2;
 custom_cmap = parula(64);
 custom_cmap(1,:) = 1;
-
 for i = 1:length(sessions)
     data = session_data{i};
     pos = extract_position(data);
@@ -122,33 +154,35 @@ for i = 1:length(sessions)
     
     index = 1;
     for j = 1:N
-        nexttile
+        
         counts = histcounts2(pos{j}(:,2), pos{j}(:,1), bins, bins);
         total_counts(j, :,:) = squeeze(total_counts(j, :,:)) + counts; 
         counts = counts / sum(sum(counts));
-        
-        imagesc(bins, bins, counts);
-        axis equal;
-        xlim([x1-offset x2+offset]);
-        ylim([y1-offset y2+offset]);
-        caxis([0 1]);
-        colormap(custom_cmap);
-        if(j == N)
-            colorbar();
+        if ismember(i, subset_ind)
+            nexttile
+            imagesc(bins, bins, counts);
+            axis equal;
+            xlim([x1-offset x2+offset]);
+            ylim([y1-offset y2+offset]);
+            
+            caxis([0 1]);
+            colormap(custom_cmap);
+            if(j == N)
+                colorbar();
+            end
+            xticks([]);
+            yticks([]);
+            if(j == 1)
+                %yticks([y1 0 y2]);
+            end
+
+            if i == 1
+                title(bat_nms(j,:));
+            end
+            if j == 1
+                ylabel(sprintf('%s-%s', sessions(i,3:4),sessions(i,5:6)), 'fontweight', 'bold');
+            end
         end
-        xticks([]);
-        yticks([]);
-        if(j == 1)
-            %yticks([y1 0 y2]);
-        end
-       
-        if i == 1
-            title(bat_nms(j,:));
-        end
-        if index == 1
-            ylabel(sprintf('%s-%s', sessions(i,3:4),sessions(i,5:6)), 'fontweight', 'bold');
-        end
-        index = index+1;
     end
 end
 for j = 1:N
@@ -168,10 +202,11 @@ for j = 1:N
         colorbar();
     end
     if j == 1
-        ylabel('Total');
+        ylabel('Total', 'fontweight', 'bold');
     end
 end
-sgtitle('Individual Bat Position Distribution');
+sgtitle('Bat Position Distribution');
+savefig('../data/processed/pairwise_analysis/results/pos_dist.fig');
 
 
 %% Position Distribution Correlation
@@ -229,9 +264,9 @@ for j = 1:N
     end
     plot(mean(corr_vals,1));
     hold on
-    for i = 1:length(sessions)
-        scatter(i*ones(1,length(sessions)-1), corr_vals(:,i),12);
-    end
+    %for i = 1:length(sessions)
+        %scatter(i*ones(1,length(sessions)-1), corr_vals(:,i),12);
+    %end
     xlabel('session');
     ylabel('correlation');
     axis square;
@@ -239,7 +274,8 @@ for j = 1:N
     yticks([0 0.2 0.4 0.6 0.8 1.0]);
     xlim([0.5 length(sessions)+0.5]);
 end
-sgtitle('Bat Position Distribution Correlation');
+sgtitle('Position Distribution Correlation');
+savefig('../data/processed/pairwise_analysis/results/pos_dist_corr.fig');
 assert(false);
 
 

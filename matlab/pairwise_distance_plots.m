@@ -30,13 +30,16 @@ load('../data/processed/pairwise_analysis/empirical_CDF.mat');
 % Contains proximity measures (fraction of data with dist < 1) of true and
 % shuffled data as well as their difference (the proximity metric)
 load('../data/processed/pairwise_analysis/proximity_measures.mat');
+
+% Load session data
+load('../data/processed/session_data.mat');
+
 end
-
-
 
 %% Interbat distance
 figure;
-t = tiledlayout(length(sessions),N*(N-1)/2, ...
+subset_ind = [1 3 5 7 9 11 13 15 17 19];
+t = tiledlayout(length(subset_ind),N*(N-1)/2, ...
             'TileSpacing','Compact', ...
             'Padding','Compact');
 
@@ -44,19 +47,21 @@ for i = 1:length(sessions) % i-th session
     index = 1; % Index ranges from 1 to 10, denotes the bat pair.
     for j = 1:N % j-th bat
         for k = j+1:N % k-th bat (not equal to j-th bat)
-            nexttile
-            
-            % Plotting the true, observed distribution
-            bar(reshape(true_counts(i,index,:), [1 length(bins)-1]), 'BarWidth', 1);
-            ylim([0,0.6]);
-            
-            % label x-ticks every 2 meters
-            xticks([0, N_bins*2/max_distance, N_bins*4/max_distance, N_bins*6/max_distance, N_bins*8/max_distance]);
-            xticklabels([0,2,4,6,8]);
-            
-            index = index+1; 
-            if i == 1
-                title(sprintf('%s-%s', bat_nms(j,:), bat_nms(k,:)));
+            if ismember(i, subset_ind)
+                nexttile
+
+                % Plotting the true, observed distribution
+                bar(reshape(true_counts(i,index,:), [1 length(bins)-1]), 'BarWidth', 1, 'FaceColor', 'k');
+                ylim([0,0.6]);
+
+                % label x-ticks every 2 meters
+                xticks([0, N_bins*2/max_distance, N_bins*4/max_distance, N_bins*6/max_distance, N_bins*8/max_distance]);
+                xticklabels([0,2,4,6,8]);
+
+                index = index+1; 
+                if i == 1
+                    title(sprintf('%s-%s', bat_nms(j,:), bat_nms(k,:)));
+                end
             end
         end
     end
@@ -64,12 +69,75 @@ end
 title(t, 'Observed Interbat Distance Distributions');
 xlabel(t, 'Distance (m)');
 ylabel(t, 'Session');
-savefig('../data/processed/pairwise_analysis/results/observed_interbat_distance_distributions.fig');
+savefig('../data/processed/pairwise_analysis/results/observed_interbat_distance_distributions_skip.fig');
+%saveas(gcf, 'for_angelo/observed_interbat_distance_distributions.png');
+
+%% Interbat distance with overlay
+figure;
+bins_x = linspace(x1,x2,10);
+bins_y = linspace(y1,y2,10);
+subset_ind = [1 3 5 7 9 11 13 15 17 19];
+t = tiledlayout(length(subset_ind),N*(N-1)/2, ...
+            'TileSpacing','Compact', ...
+            'Padding','Compact');
+
+for i = 1:length(sessions) % i-th session
+    index = 1; % Index ranges from 1 to 10, denotes the bat pair.
+    data = session_data{i};
+    pos = extract_position(data);
+    for j = 1:N % j-th bat
+        for k = j+1:N % k-th bat (not equal to j-th bat)
+            if ismember(i, subset_ind)
+                nexttile
+
+                % Plotting the true, observed distribution
+                bar(reshape(true_counts(i,index,:), [1 length(bins)-1]), 'BarWidth', 1, 'FaceColor', 'k');
+                ylim([0,0.6]);
+                
+                counts_j = histcounts2(pos{j}(:,2), pos{j}(:,1), bins_y, bins_x);
+                counts_j = counts_j / sum(sum(counts_j));
+
+                counts_k = histcounts2(pos{k}(:,2), pos{k}(:,1), bins_y, bins_x);
+                counts_k = counts_k / sum(sum(counts_k));
+            
+                bin_centers_x = bins_x + diff(bins_x(1:2))/2;
+                bin_centers_x = bin_centers_x(1:end-1);
+                bin_centers_y = bins_y + diff(bins_y(1:2))/2;
+                bin_centers_y = bin_centers_y(1:end-1);
+                grid_coords_x = meshgrid(bin_centers_x, bin_centers_y);
+                grid_coords_y = flip(meshgrid(bin_centers_x, bin_centers_y).',1);
+                j_peaks = [grid_coords_x(counts_j>0.1) grid_coords_y(counts_j>0.1)].';
+                k_peaks = [grid_coords_x(counts_k>0.1) grid_coords_y(counts_k>0.1)].';
+
+                peak_distances = [];
+                for j_p = j_peaks
+                    for k_p = k_peaks
+                        peak_distances = [peak_distances norm(j_p - k_p)];
+                        xline(norm(j_p - k_p)*19/max_distance, 'LineWidth', 1, 'Color', 'r');
+                    end
+                end
+                
+                % label x-ticks every 2 meters
+                xticks([0, N_bins*2/max_distance, N_bins*4/max_distance, N_bins*6/max_distance, N_bins*8/max_distance]);
+                xticklabels([0,2,4,6,8]);
+
+                index = index+1; 
+                if i == 1
+                    title(sprintf('%s-%s', bat_nms(j,:), bat_nms(k,:)));
+                end
+            end
+        end
+    end
+end
+title(t, 'Observed Interbat Distance Distributions');
+xlabel(t, 'Distance (m)');
+ylabel(t, 'Session');
+savefig('../data/processed/pairwise_analysis/results/observed_interbat_distance_distributions_overlay_skip.fig');
 %saveas(gcf, 'for_angelo/observed_interbat_distance_distributions.png');
 
 %% Interbat shuffled distance
 figure;
-t = tiledlayout(length(sessions),N*(N-1)/2, ...
+t = tiledlayout(length(subset_ind),N*(N-1)/2, ...
             'TileSpacing','Compact', ...
             'Padding','Compact');
 
@@ -77,19 +145,21 @@ for i = 1:length(sessions)
     index = 1; % Index ranges from 1 to 10, denotes the bat pair.
     for j = 1:N % j-th bat
         for k = j+1:N % k-th bat (not equal to j-th bat)
-            nexttile
-            
-            % Plotting the shuffled baseline distribution
-            bar(squeeze(mean(base_counts(i,index,:,:),4)), 'BarWidth', 1);
-            ylim([0,0.6]);
-            
-            % label x-ticks every 2 meters
-            xticks([0, N_bins*2/max_distance, N_bins*4/max_distance, N_bins*6/max_distance, N_bins*8/max_distance]);
-            xticklabels([0,2,4,6,8]);
-            
-            index = index+1;
-            if i == 1
-                title(sprintf('%s-%s', bat_nms(j,:), bat_nms(k,:)));
+            if ismember(i, subset_ind)
+                nexttile
+
+                % Plotting the shuffled baseline distribution
+                bar(squeeze(mean(base_counts(i,index,:,:),4)), 'BarWidth', 1, 'FaceColor', 'k');
+                ylim([0,0.6]);
+
+                % label x-ticks every 2 meters
+                xticks([0, N_bins*2/max_distance, N_bins*4/max_distance, N_bins*6/max_distance, N_bins*8/max_distance]);
+                xticklabels([0,2,4,6,8]);
+               
+                index = index+1;
+                if i == 1
+                    title(sprintf('%s-%s', bat_nms(j,:), bat_nms(k,:)));
+                end
             end
         end
     end
@@ -97,12 +167,12 @@ end
 title(t, 'Baseline Interbat Distance Distributions');
 xlabel(t, 'Distance (m)');
 ylabel(t, 'Session');
-savefig('../data/processed/pairwise_analysis/results/shuffled_interbat_distance_distributions.fig');
+savefig('../data/processed/pairwise_analysis/results/shuffled_interbat_distance_distributions_skip.fig');
 %saveas(gcf, 'for_angelo/shuffled_interbat_distance_distributions.png');
 
 %% Interbat distance difference distribution
 figure;
-t = tiledlayout(length(sessions),N*(N-1)/2, ...
+t = tiledlayout(length(subset_ind),N*(N-1)/2, ...
             'TileSpacing','Compact', ...
             'Padding','Compact');
 
@@ -110,24 +180,26 @@ for i = 1:length(sessions)
     index = 1;
     for j = 1:N
         for k = j+1:N
-            nexttile
-            
-            % Plotting the difference (true - baseline) distribution
-            bar(squeeze(diff_counts(i,index,:)), 'BarWidth', 1, 'FaceColor', 'k');
-            [H, p, ci] = ttest(squeeze(boot_counts(i,index,1,:)),mean(squeeze(base_counts(i,index,1,:))), 'Alpha', 0.01);   
-            hold on;
-            if(H == 0)
-                alpha(0.1);
-            end
-            %errorbar( 1+mean(diff(bins))/2, squeeze(diff_counts(i,index,1)), diff(ci)/2);
-            ylim([-0.25,0.25]);
-            
-            xticks([0, N_bins*2/max_distance, N_bins*4/max_distance, N_bins*6/max_distance, N_bins*8/max_distance]);
-            xticklabels([0,2,4,6,8]);
-            hold off
-            index = index+1;
-            if i == 1
-                title(sprintf('%s-%s', bat_nms(j,:), bat_nms(k,:)));
+            if ismember(i, subset_ind)
+                nexttile
+
+                % Plotting the difference (true - baseline) distribution
+                bar(squeeze(diff_counts(i,index,:)), 'BarWidth', 1, 'FaceColor', 'k');
+                [H, p, ci] = ttest(squeeze(boot_counts(i,index,1,:)),mean(squeeze(base_counts(i,index,1,:))), 'Alpha', 0.01);   
+                hold on;
+                if(H == 0)
+                    alpha(0.1);
+                end
+                %errorbar( 1+mean(diff(bins))/2, squeeze(diff_counts(i,index,1)), diff(ci)/2);
+                ylim([-0.25,0.25]);
+
+                xticks([0, N_bins*2/max_distance, N_bins*4/max_distance, N_bins*6/max_distance, N_bins*8/max_distance]);
+                xticklabels([0,2,4,6,8]);
+                hold off
+                index = index+1;
+                if i == 1
+                    title(sprintf('%s-%s', bat_nms(j,:), bat_nms(k,:)));
+                end
             end
         end
     end
@@ -135,7 +207,7 @@ end
 title(t, 'Interbat Distance Difference Distributions');
 xlabel(t, 'Distance (m)');
 ylabel(t, 'Session');
-savefig('../data/processed/pairwise_analysis/results/difference_distributions.fig');
+savefig('../data/processed/pairwise_analysis/results/difference_distributions_skip.fig');
 %saveas(gcf, 'for_angelo/difference_distributions.png');
 
 if false % skip
